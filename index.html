@@ -4,485 +4,235 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#02060b">
-<title>Sentinela-7 · Central de Monitoramento</title>
+<title>Sentinela-7 · Central</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-:root{
-  --neon:#00f0ff;--gold:#ffb300;--bg:#02060b;--danger:#ff2d55;--ok:#00ff9d;
-  --panel:rgba(0,240,255,.05);--line:rgba(0,240,255,.22);
-  --text:#dffcff;--muted:rgba(0,240,255,.55);
-}
+:root{--neon:#00f0ff;--gold:#ffb300;--bg:#02060b;--danger:#ff2d55;--ok:#00ff9d;
+--line:rgba(0,240,255,.22);--text:#dffcff;--muted:rgba(0,240,255,.55)}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{
-  background:radial-gradient(circle at 15% 0%,rgba(0,240,255,.10),transparent 45%),
-             radial-gradient(circle at 90% 100%,rgba(255,179,0,.10),transparent 45%),
-             var(--bg);
-  color:var(--text);font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  min-height:100vh;overflow:hidden;
-}
-body::before{
-  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:linear-gradient(rgba(0,240,255,.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,240,255,.04) 1px,transparent 1px);
-  background-size:48px 48px;
-  mask-image:radial-gradient(circle at 50% 40%,#000 30%,transparent 90%);
-}
-body::after{
-  content:"";position:fixed;inset:0;pointer-events:none;z-index:9998;
-  background:repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.18) 3px 4px);
-  opacity:.35;
-}
-
-/* ONBOARDING */
-#onboarding{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
-  padding:20px;background:radial-gradient(circle at 50% 30%,rgba(0,240,255,.12),rgba(2,6,11,.98) 60%);overflow-y:auto}
-#onboarding.hide{display:none}
-.ob-card{width:min(640px,100%);border:1px solid var(--line);
-  background:linear-gradient(180deg,rgba(0,240,255,.06),rgba(2,6,11,.98));padding:28px 26px;margin:auto}
-.ob-card .logo{width:72px;height:72px;margin:0 auto 14px;color:var(--neon);filter:drop-shadow(0 0 12px var(--neon))}
-.ob-card h1{font-size:20px;letter-spacing:.22em;text-align:center;font-weight:800;text-shadow:0 0 12px var(--neon)}
-.ob-card h1 span{color:var(--gold);text-shadow:0 0 12px var(--gold)}
-.ob-card .sub{text-align:center;font-size:9px;color:var(--muted);letter-spacing:.26em;margin:6px 0 22px}
-.ob-card h2{font-size:11px;color:var(--gold);letter-spacing:.2em;margin-bottom:10px}
-.ob-card p{font-size:10.5px;line-height:1.75;color:rgba(223,252,255,.85);margin-bottom:12px}
-.ob-card ul{list-style:none;margin:0 0 16px 0}
-.ob-card ul li{font-size:10px;line-height:1.7;padding:6px 0 6px 18px;position:relative;
-  color:rgba(223,252,255,.8);border-bottom:1px solid rgba(0,240,255,.08)}
-.ob-card ul li::before{content:"◆";position:absolute;left:0;color:var(--neon);font-size:8px;top:9px}
-.ob-card .chk{display:flex;gap:10px;align-items:flex-start;margin:14px 0;padding:12px;
-  border:1px solid rgba(255,179,0,.35);background:rgba(255,179,0,.05);cursor:pointer}
-.ob-card .chk input{margin-top:2px;accent-color:var(--ok);flex:0 0 auto;width:16px;height:16px}
-.ob-card .chk span{font-size:9.5px;line-height:1.6;color:#ffe6b3}
-.ob-card button{width:100%;padding:14px;margin-top:8px;border:1px solid var(--ok);
-  background:rgba(0,255,157,.1);color:var(--ok);font-family:inherit;font-size:11px;
-  font-weight:700;letter-spacing:.15em;cursor:pointer;transition:.25s}
-.ob-card button:hover:not(:disabled){background:rgba(0,255,157,.22)}
-.ob-card button:disabled{opacity:.35;cursor:not-allowed}
-
-/* LAYOUT */
+body{background:radial-gradient(circle at 15% 0%,rgba(0,240,255,.1),transparent 45%),
+radial-gradient(circle at 90% 100%,rgba(255,179,0,.1),transparent 45%),var(--bg);
+color:var(--text);font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+min-height:100vh;overflow:hidden}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:9998;
+background:repeating-linear-gradient(180deg,transparent 0 3px,rgba(0,0,0,.18) 3px 4px);
+opacity:.35}
 .app{position:relative;z-index:1;height:100vh;display:grid;
-  grid-template-columns:340px 1fr 360px;
-  grid-template-rows:auto 1fr auto;
-  grid-template-areas:"hdr hdr hdr" "side map alerts" "side foot alerts"}
-@media(max-width:1100px){.app{grid-template-columns:1fr;grid-template-areas:"hdr" "map" "side" "alerts" "foot";overflow-y:auto;height:auto}}
+grid-template-columns:320px 1fr 340px;grid-template-rows:auto 1fr auto;
+grid-template-areas:"hdr hdr hdr" "side map alerts" "side foot alerts"}
+@media(max-width:1000px){.app{grid-template-columns:1fr;
+grid-template-areas:"hdr" "map" "side" "alerts" "foot";overflow-y:auto;height:auto}}
 
-header{grid-area:hdr;display:flex;align-items:center;gap:14px;
-  border-bottom:1px solid var(--line);padding:10px 16px;
-  background:linear-gradient(90deg,rgba(0,240,255,.06),transparent)}
-header .logo{width:38px;height:38px;flex:0 0 38px;color:var(--neon);filter:drop-shadow(0 0 6px var(--neon))}
-header .brand h1{font-size:15px;letter-spacing:.2em;font-weight:800;text-shadow:0 0 8px var(--neon)}
-header .brand h1 span{color:var(--gold);text-shadow:0 0 8px var(--gold)}
-header .brand p{font-size:8px;color:var(--muted);letter-spacing:.24em;margin-top:2px}
+header{grid-area:hdr;display:flex;align-items:center;gap:12px;
+border-bottom:1px solid var(--line);padding:10px 14px;
+background:linear-gradient(90deg,rgba(0,240,255,.06),transparent);flex-wrap:wrap}
+header .logo{width:34px;height:34px;flex:0 0 34px;color:var(--neon);
+filter:drop-shadow(0 0 6px var(--neon))}
+header h1{font-size:14px;letter-spacing:.2em;font-weight:800;
+text-shadow:0 0 8px var(--neon)}
+header h1 span{color:var(--gold);text-shadow:0 0 8px var(--gold)}
 header .spacer{flex:1}
-header .hbtn{padding:7px 14px;font-family:inherit;font-size:9.5px;letter-spacing:.16em;
-  border:1px solid var(--gold);color:var(--gold);background:rgba(255,179,0,.06);cursor:pointer;transition:.2s;white-space:nowrap}
-header .hbtn:hover{background:rgba(255,179,0,.18)}
-header .hbtn.primary{border-color:var(--ok);color:var(--ok);background:rgba(0,255,157,.08)}
-header .hbtn.primary:hover{background:rgba(0,255,157,.2)}
-header .status{font-size:9.5px;letter-spacing:.18em;padding:5px 11px;
-  border:1px solid var(--ok);color:var(--ok);box-shadow:0 0 12px rgba(0,255,157,.3);white-space:nowrap}
-header .status::before{content:"●";margin-right:6px;animation:blink 1.4s infinite}
-header .status.warn{border-color:var(--gold);color:var(--gold);box-shadow:0 0 12px rgba(255,179,0,.3)}
-@keyframes blink{50%{opacity:.2}}
+header .hbtn{padding:7px 12px;font-family:inherit;font-size:9.5px;
+letter-spacing:.14em;border:1px solid var(--ok);color:var(--ok);
+background:rgba(0,255,157,.08);cursor:pointer;white-space:nowrap}
+header .hbtn:hover{background:rgba(0,255,157,.2)}
+header .code{font-size:11px;letter-spacing:.28em;color:var(--ok);
+padding:5px 10px;border:1px solid var(--ok);background:rgba(0,255,157,.06);
+font-weight:700}
 
-/* SIDEBAR */
-.side{grid-area:side;border-right:1px solid var(--line);display:flex;flex-direction:column;
-  overflow:hidden;background:rgba(0,240,255,.02)}
-.side-head{padding:12px 14px;border-bottom:1px solid var(--line)}
-.side-head .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.side-head h2{font-size:10px;color:var(--gold);letter-spacing:.24em}
-.side-head .count{font-size:9px;color:var(--muted)}
-.btn-new{width:100%;padding:10px;margin-bottom:8px;border:1px solid var(--ok);
-  background:rgba(0,255,157,.08);color:var(--ok);font-family:inherit;font-size:10px;
-  letter-spacing:.14em;cursor:pointer;transition:.2s}
-.btn-new:hover{background:rgba(0,255,157,.2)}
-.search{width:100%;padding:8px 10px;font-family:inherit;font-size:10px;
-  background:rgba(0,240,255,.05);border:1px solid var(--line);color:var(--text);outline:none}
-.search:focus{border-color:var(--neon);box-shadow:0 0 10px rgba(0,240,255,.2)}
-.filters{display:flex;gap:6px;margin-top:8px}
-.filters button{flex:1;padding:6px 4px;font-family:inherit;font-size:8.5px;letter-spacing:.1em;
-  border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;transition:.2s}
-.filters button.on{color:var(--neon);border-color:var(--neon);background:rgba(0,240,255,.08)}
+.side{grid-area:side;border-right:1px solid var(--line);display:flex;
+flex-direction:column;overflow:hidden;background:rgba(0,240,255,.02)}
+.side-head{padding:10px 12px;border-bottom:1px solid var(--line)}
+.side-head h2{font-size:10px;color:var(--gold);letter-spacing:.22em;
+margin-bottom:8px;display:flex;justify-content:space-between}
+.side-head .count{color:var(--muted);font-size:9px}
+.driver-list{flex:1;overflow-y:auto;padding:6px 8px}
+.driver-list::-webkit-scrollbar{width:5px}
+.driver-list::-webkit-scrollbar-thumb{background:rgba(0,240,255,.3)}
+.d-item{border:1px solid rgba(0,240,255,.15);border-left:3px solid var(--ok);
+background:rgba(0,255,157,.03);padding:10px;margin-bottom:6px;cursor:pointer;
+transition:.18s}
+.d-item:hover{background:rgba(0,240,255,.06)}
+.d-item.offline{border-left-color:rgba(150,150,150,.5);
+background:rgba(120,120,120,.03);opacity:.7}
+.d-item .r1{display:flex;justify-content:space-between;gap:6px;margin-bottom:3px}
+.d-item .name{font-size:11px;color:#fff;font-weight:700;display:flex;gap:5px;
+align-items:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-item .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);
+box-shadow:0 0 8px var(--ok);flex:0 0 7px}
+.d-item.offline .dot{background:rgba(150,150,150,.7);box-shadow:none}
+.d-item .r2{font-size:8.5px;color:var(--muted);display:flex;gap:8px;
+flex-wrap:wrap;margin-top:3px}
+.d-item .r2 b{color:var(--text)}
+.empty{text-align:center;padding:22px 10px;font-size:9px;color:var(--muted);
+line-height:1.8}
 
-.vehicle-list{flex:1;overflow-y:auto;padding:6px 8px}
-.vehicle-list::-webkit-scrollbar{width:5px}
-.vehicle-list::-webkit-scrollbar-thumb{background:rgba(0,240,255,.3)}
-.v-item{border:1px solid rgba(0,240,255,.15);border-left:3px solid var(--ok);
-  background:rgba(0,255,157,.03);padding:10px 11px;margin-bottom:7px;cursor:pointer;transition:.18s}
-.v-item:hover{background:rgba(0,240,255,.06);border-color:var(--line)}
-.v-item.selected{border-color:var(--neon);background:rgba(0,240,255,.08);box-shadow:0 0 14px rgba(0,240,255,.2)}
-.v-item.stopped{border-left-color:var(--gold);background:rgba(255,179,0,.03)}
-.v-item.offline{border-left-color:rgba(150,150,150,.5);background:rgba(120,120,120,.03);opacity:.7}
-.v-item.alert{border-left-color:var(--danger);background:rgba(255,45,85,.06);animation:vpulse 1.6s infinite}
-@keyframes vpulse{50%{box-shadow:0 0 14px rgba(255,45,85,.4)}}
-.v-item .row1{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
-.v-item .name{font-size:11.5px;color:#fff;font-weight:700;display:flex;align-items:center;gap:6px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.v-item .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);flex:0 0 7px}
-.v-item.stopped .dot{background:var(--gold);box-shadow:0 0 8px var(--gold)}
-.v-item.offline .dot{background:rgba(150,150,150,.7);box-shadow:none}
-.v-item.alert .dot{background:var(--danger);box-shadow:0 0 10px var(--danger);animation:blink .9s infinite}
-.v-item .plate{font-size:8.5px;color:var(--gold);border:1px solid rgba(255,179,0,.4);
-  padding:2px 6px;background:rgba(255,179,0,.06);white-space:nowrap}
-.v-item .row2{font-size:9px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}
-.v-item .row2 b{color:var(--text)}
-.v-item .bar{height:3px;background:rgba(0,240,255,.1);margin-top:6px;overflow:hidden}
-.v-item .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--neon),var(--gold));transition:width .4s}
-
-/* MAPA */
-.map-wrap{grid-area:map;position:relative;overflow:hidden;background:#02060b;min-height:400px}
-#map{position:absolute;inset:0;z-index:1}
-.map-wrap .tint{position:absolute;inset:0;pointer-events:none;z-index:400;
-  background:radial-gradient(circle at 50% 50%,rgba(0,240,255,.04),rgba(2,6,11,.5) 95%);mix-blend-mode:multiply}
-.map-wrap .scanline{position:absolute;left:0;right:0;height:120px;top:0;pointer-events:none;z-index:401;
-  background:linear-gradient(180deg,transparent,rgba(0,240,255,.10),transparent);animation:scan 7s linear infinite}
-@keyframes scan{from{top:-120px}to{top:100%}}
+.map-wrap{grid-area:map;position:relative;background:#02060b;min-height:400px}
+#map{position:absolute;inset:0}
+.map-wrap .scanline{position:absolute;left:0;right:0;height:100px;top:0;
+pointer-events:none;z-index:400;
+background:linear-gradient(180deg,transparent,rgba(0,240,255,.08),transparent);
+animation:scan 7s linear infinite}
+@keyframes scan{from{top:-100px}to{top:100%}}
 .leaflet-container{background:#02060b!important;font-family:inherit!important}
-.leaflet-tile-pane{filter:brightness(.75) saturate(1.05) contrast(1.05) hue-rotate(-8deg)}
-.leaflet-control-attribution{background:rgba(2,6,11,.75)!important;color:rgba(0,240,255,.5)!important;font-size:8px!important}
-.leaflet-bar a{background:rgba(2,6,11,.9)!important;color:var(--neon)!important;border-color:var(--line)!important}
-.map-overlay-top{position:absolute;top:10px;left:10px;right:10px;z-index:500;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
-.map-overlay-top .chip{font-size:9px;padding:5px 10px;border:1px solid var(--line);
-  background:rgba(2,6,11,.85);color:var(--text);letter-spacing:.1em;backdrop-filter:blur(4px);pointer-events:auto}
-.map-overlay-top .chip b{color:var(--gold)}
-
+.leaflet-tile-pane{filter:brightness(.75) saturate(1.05) contrast(1.05)
+hue-rotate(-8deg)}
+.leaflet-control-attribution{background:rgba(2,6,11,.75)!important;
+color:rgba(0,240,255,.5)!important;font-size:8px!important}
 .mk-v{width:20px;height:20px;border-radius:50%;background:var(--ok);
-  box-shadow:0 0 14px var(--ok),0 0 30px rgba(0,255,157,.5);border:2px solid #fff;position:relative}
-.mk-v.stopped{background:var(--gold);box-shadow:0 0 14px var(--gold),0 0 30px rgba(255,179,0,.5)}
-.mk-v.offline{background:rgba(150,150,150,.8);box-shadow:none;border-color:rgba(255,255,255,.5)}
-.mk-v.alert{background:var(--danger);box-shadow:0 0 16px var(--danger),0 0 36px rgba(255,45,85,.6);animation:blink .9s infinite}
-.mk-v span{position:absolute;left:24px;top:-4px;font-size:9.5px;color:#fff;white-space:nowrap;
-  text-shadow:0 0 6px #000,0 0 10px var(--neon);background:rgba(2,6,11,.7);padding:2px 6px;border-left:2px solid var(--neon)}
+box-shadow:0 0 14px var(--ok),0 0 30px rgba(0,255,157,.5);
+border:2px solid #fff;position:relative}
+.mk-v.offline{background:rgba(150,150,150,.8);box-shadow:none;
+border-color:rgba(255,255,255,.5)}
+.mk-v span{position:absolute;left:24px;top:-4px;font-size:9.5px;color:#fff;
+white-space:nowrap;text-shadow:0 0 6px #000,0 0 10px var(--neon);
+background:rgba(2,6,11,.7);padding:2px 6px;border-left:2px solid var(--neon)}
 .mk-v .arrow{position:absolute;left:50%;top:50%;width:0;height:0;
-  border-left:6px solid transparent;border-right:6px solid transparent;
-  border-bottom:14px solid var(--neon);transform-origin:50% 90%;
-  transform:translate(-50%,-110%) rotate(0deg);opacity:.9;filter:drop-shadow(0 0 6px var(--neon))}
+border-left:6px solid transparent;border-right:6px solid transparent;
+border-bottom:14px solid var(--neon);transform-origin:50% 90%;
+transform:translate(-50%,-110%);filter:drop-shadow(0 0 6px var(--neon))}
 
-/* ALERTAS */
-.alerts{grid-area:alerts;border-left:1px solid var(--line);display:flex;flex-direction:column;
-  overflow:hidden;background:rgba(255,179,0,.02)}
-.alerts-head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-.alerts-head h2{font-size:10px;color:var(--gold);letter-spacing:.24em}
-.alerts-head .badge{font-size:9px;padding:2px 8px;border:1px solid var(--danger);color:var(--danger);background:rgba(255,45,85,.08)}
-.alerts-head .badge.ok{border-color:var(--ok);color:var(--ok);background:rgba(0,255,157,.08)}
+.alerts{grid-area:alerts;border-left:1px solid var(--line);display:flex;
+flex-direction:column;overflow:hidden;background:rgba(255,179,0,.02)}
+.alerts-head{padding:10px 12px;border-bottom:1px solid var(--line);
+display:flex;justify-content:space-between;align-items:center}
+.alerts-head h2{font-size:10px;color:var(--gold);letter-spacing:.22em}
+.alerts-head .badge{font-size:9px;padding:2px 8px;border:1px solid var(--ok);
+color:var(--ok);background:rgba(0,255,157,.08)}
 .alert-list{flex:1;overflow-y:auto;padding:6px 8px}
 .alert-list::-webkit-scrollbar{width:5px}
 .alert-list::-webkit-scrollbar-thumb{background:rgba(255,179,0,.3)}
-.a-item{border:1px solid rgba(255,45,85,.25);border-left:3px solid var(--danger);
-  background:rgba(255,45,85,.05);padding:9px 11px;margin-bottom:6px}
-.a-item.warn{border-color:rgba(255,179,0,.3);border-left-color:var(--gold);background:rgba(255,179,0,.04)}
-.a-item.info{border-color:rgba(0,240,255,.25);border-left-color:var(--neon);background:rgba(0,240,255,.04)}
-.a-item.sent{border-color:rgba(0,255,157,.25);border-left-color:var(--ok);background:rgba(0,255,157,.04)}
-.a-item .t{font-size:10.5px;color:#fff;font-weight:700;margin-bottom:3px}
-.a-item .d{font-size:9px;color:rgba(223,252,255,.7);line-height:1.5}
-.a-item .time{font-size:8px;color:var(--muted);margin-top:5px;display:flex;justify-content:space-between}
-.a-item .time button{background:none;border:none;color:var(--neon);font-family:inherit;font-size:8px;
-  cursor:pointer;text-decoration:underline;padding:0}
-.empty-alerts{text-align:center;padding:22px 12px;font-size:9px;color:var(--muted);line-height:1.8}
+.a-item{border:1px solid rgba(0,240,255,.25);border-left:3px solid var(--neon);
+background:rgba(0,240,255,.04);padding:8px 10px;margin-bottom:5px;font-size:9px}
+.a-item.warn{border-color:rgba(255,179,0,.3);border-left-color:var(--gold);
+background:rgba(255,179,0,.04)}
+.a-item.danger{border-color:rgba(255,45,85,.3);border-left-color:var(--danger);
+background:rgba(255,45,85,.05)}
+.a-item .t{font-size:10px;color:#fff;font-weight:700;margin-bottom:2px}
+.a-item .d{color:rgba(223,252,255,.7);line-height:1.5}
+.a-item .time{color:var(--muted);font-size:8px;margin-top:4px}
 
-/* RODAPÉ */
-footer{grid-area:foot;border-top:1px solid var(--line);padding:8px 14px;display:flex;gap:14px;
-  align-items:center;font-size:8.5px;color:var(--muted);flex-wrap:wrap;background:rgba(0,240,255,.02)}
-footer .stat{display:flex;gap:6px;align-items:center}
-footer .stat b{color:var(--gold);font-size:9.5px}
+footer{grid-area:foot;border-top:1px solid var(--line);padding:7px 12px;
+display:flex;gap:12px;align-items:center;font-size:8.5px;color:var(--muted);
+flex-wrap:wrap;background:rgba(0,240,255,.02)}
+footer b{color:var(--gold);font-size:9.5px}
 footer .spacer{flex:1}
 footer .legal{color:rgba(0,240,255,.4);font-size:8px}
 
-/* MODAIS GENÉRICOS */
-.modal{position:fixed;inset:0;z-index:9990;display:none;align-items:center;justify-content:center;
-  background:rgba(2,6,11,.85);backdrop-filter:blur(5px);padding:20px;overflow-y:auto}
+.modal{position:fixed;inset:0;z-index:9990;display:none;align-items:center;
+justify-content:center;background:rgba(2,6,11,.85);backdrop-filter:blur(5px);
+padding:16px;overflow-y:auto}
 .modal.show{display:flex}
-.modal-card{width:min(600px,100%);max-height:92vh;overflow-y:auto;
-  border:1px solid var(--neon);background:linear-gradient(180deg,rgba(0,240,255,.07),rgba(2,6,11,.98));padding:22px;margin:auto}
-.modal-card.gold{border-color:var(--gold);background:linear-gradient(180deg,rgba(255,179,0,.07),rgba(2,6,11,.98))}
-.modal-card .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px}
-.modal-card h2{font-size:14px;color:#fff;letter-spacing:.1em}
-.modal-card .sub{font-size:9px;color:var(--gold);margin-top:4px;letter-spacing:.16em}
-.modal-card .close{background:none;border:1px solid var(--line);color:var(--muted);
-  width:30px;height:30px;font-family:inherit;cursor:pointer;font-size:14px}
-.modal-card .close:hover{border-color:var(--danger);color:var(--danger)}
-.form-row{margin-bottom:12px}
-.form-row label{display:block;font-size:9px;color:var(--muted);letter-spacing:.2em;margin-bottom:5px}
-.form-row input,.form-row select,.form-row textarea{width:100%;padding:9px 11px;font-family:inherit;font-size:11px;
-  background:rgba(0,240,255,.05);border:1px solid var(--line);color:var(--text);outline:none;transition:.2s}
-.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--neon);box-shadow:0 0 10px rgba(0,240,255,.2)}
-.form-row textarea{resize:vertical;min-height:70px;line-height:1.5}
-.form-row.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.form-row.two>div{margin:0}
-.btn-submit{width:100%;padding:13px;margin-top:6px;border:1px solid var(--ok);
-  background:rgba(0,255,157,.1);color:var(--ok);font-family:inherit;font-size:11px;
-  font-weight:700;letter-spacing:.14em;cursor:pointer;transition:.2s}
-.btn-submit:hover{background:rgba(0,255,157,.22)}
-
-/* KV */
-.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.kv .box{border:1px solid var(--line);padding:9px 11px;background:rgba(0,240,255,.03)}
-.kv .box .l{font-size:8px;color:var(--muted);letter-spacing:.2em;margin-bottom:4px}
-.kv .box .v{font-size:12px;color:#fff;font-weight:700}
+.mcard{width:min(560px,100%);max-height:92vh;overflow-y:auto;
+border:1px solid var(--neon);
+background:linear-gradient(180deg,rgba(0,240,255,.07),rgba(2,6,11,.98));
+padding:20px;margin:auto}
+.mcard .hdr{display:flex;justify-content:space-between;align-items:flex-start;
+margin-bottom:14px;gap:10px}
+.mcard h2{font-size:14px;color:#fff}
+.mcard .sub{font-size:9px;color:var(--gold);margin-top:3px;letter-spacing:.14em}
+.mcard .close{background:none;border:1px solid var(--line);color:var(--muted);
+width:28px;height:28px;cursor:pointer;font-family:inherit}
+.mcard .close:hover{border-color:var(--danger);color:var(--danger)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.kv .box{border:1px solid var(--line);padding:8px 10px;background:rgba(0,240,255,.03)}
+.kv .box .l{font-size:8px;color:var(--muted);letter-spacing:.18em;margin-bottom:3px}
+.kv .box .v{font-size:11.5px;color:#fff;font-weight:700}
 .kv .box .v.gold{color:var(--gold)}
 .kv .box .v.ok{color:var(--ok)}
-.kv .box .v.danger{color:var(--danger)}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
-.actions button{flex:1;min-width:120px;padding:10px;font-family:inherit;font-size:9.5px;
-  border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;transition:.2s}
-.actions button:hover{border-color:var(--neon);color:var(--neon)}
-.actions button.primary{border-color:var(--ok);color:var(--ok);background:rgba(0,255,157,.08)}
-.actions button.primary:hover{background:rgba(0,255,157,.2)}
-.actions button.gold{border-color:var(--gold);color:var(--gold);background:rgba(255,179,0,.06)}
-.actions button.gold:hover{background:rgba(255,179,0,.18)}
-.actions button.danger{border-color:var(--danger);color:var(--danger);background:rgba(255,45,85,.06)}
-.actions button.danger:hover{background:rgba(255,45,85,.18)}
-
-/* CANAIS DE COMUNICAÇÃO (motorista) */
-.channels{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
-.channels h3{font-size:10px;color:var(--gold);letter-spacing:.22em;margin-bottom:10px}
-.chan-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.chan-row button{flex:1;min-width:130px;padding:11px;font-family:inherit;font-size:9.5px;
-  border:1px solid var(--line);background:rgba(0,240,255,.03);color:var(--text);cursor:pointer;transition:.2s}
-.chan-row button:hover{border-color:var(--neon);background:rgba(0,240,255,.1)}
-.chan-row button.ptt{border-color:var(--ok);color:var(--ok)}
-.chan-row button.ptt:active{background:rgba(0,255,157,.25)}
-.chan-row button.sos{border-color:var(--danger);color:var(--danger);background:rgba(255,45,85,.06)}
-.chat{max-height:220px;overflow-y:auto;border:1px solid var(--line);padding:10px;
-  background:rgba(0,0,0,.25);font-size:10px;line-height:1.6;margin-bottom:8px}
-.chat .msg{margin-bottom:8px;padding:6px 9px;border-radius:2px;max-width:85%;word-break:break-word}
-.chat .msg.me{background:rgba(0,240,255,.1);border-left:2px solid var(--neon);margin-left:auto;text-align:right}
+.chat{max-height:200px;overflow-y:auto;border:1px solid var(--line);padding:8px;
+background:rgba(0,0,0,.25);font-size:10px;line-height:1.5;margin-bottom:8px}
+.chat .msg{margin-bottom:6px;padding:6px 9px;max-width:85%;word-break:break-word}
+.chat .msg.me{background:rgba(0,240,255,.1);border-left:2px solid var(--neon);
+margin-left:auto;text-align:right}
 .chat .msg.them{background:rgba(255,179,0,.08);border-left:2px solid var(--gold)}
-.chat .msg .meta{font-size:7.5px;color:var(--muted);margin-top:3px}
+.chat .msg .meta{font-size:7.5px;color:var(--muted);margin-top:2px}
 .chat-input{display:flex;gap:6px}
-.chat-input input{flex:1;padding:9px 11px;font-family:inherit;font-size:10px;
-  background:rgba(0,240,255,.05);border:1px solid var(--line);color:var(--text);outline:none}
-.chat-input button{padding:9px 16px;font-family:inherit;font-size:9.5px;
-  border:1px solid var(--neon);background:rgba(0,240,255,.1);color:var(--neon);cursor:pointer}
-.chat-input button:hover{background:rgba(0,240,255,.22)}
+.chat-input input{flex:1;padding:9px;font-family:inherit;font-size:10px;
+background:rgba(0,240,255,.05);border:1px solid var(--line);color:var(--text);
+outline:none}
+.chat-input button{padding:9px 14px;font-family:inherit;font-size:9.5px;
+border:1px solid var(--neon);background:rgba(0,240,255,.1);color:var(--neon);
+cursor:pointer}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.actions button{flex:1;min-width:100px;padding:9px;font-family:inherit;
+font-size:9.5px;border:1px solid var(--line);background:transparent;
+color:var(--muted);cursor:pointer}
+.actions button.ok{border-color:var(--ok);color:var(--ok);
+background:rgba(0,255,157,.08)}
 
-/* CANNED */
-.canned-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:12px}
-.canned-btn{padding:9px 10px;font-family:inherit;font-size:9.5px;text-align:left;line-height:1.4;
-  border:1px solid var(--line);background:rgba(0,240,255,.03);color:var(--text);cursor:pointer;transition:.2s}
-.canned-btn:hover{border-color:var(--neon);background:rgba(0,240,255,.1)}
-.canned-btn.red{border-color:rgba(255,45,85,.4);color:#ffd0dc}
-.canned-btn.gold{border-color:rgba(255,179,0,.4);color:#ffe6b3}
-.target-row{display:flex;gap:8px;margin-bottom:12px}
-.target-row select{flex:1}
-
-/* CÓDIGO DE PAREAMENTO */
-.pair-code{font-size:24px;letter-spacing:.35em;color:var(--ok);text-align:center;
-  text-shadow:0 0 12px var(--ok);font-weight:800;padding:14px;
-  border:1px dashed rgba(0,255,157,.4);background:rgba(0,255,157,.05);margin:10px 0}
-.pair-hint{font-size:9px;color:var(--muted);text-align:center;line-height:1.7;margin-bottom:8px}
-
-/* TOAST */
-#toastWrap{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:9995;
-  display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(92vw,420px)}
-.toast{width:100%;padding:10px 14px;border:1px solid var(--gold);background:rgba(2,6,11,.96);
-  font-size:10.5px;color:#ffe6b3;backdrop-filter:blur(6px)}
+#toastWrap{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+z-index:9995;display:flex;flex-direction:column;gap:6px;align-items:center;
+pointer-events:none;width:min(92vw,420px)}
+.toast{width:100%;padding:9px 12px;border:1px solid var(--gold);
+background:rgba(2,6,11,.96);font-size:10px;color:#ffe6b3;backdrop-filter:blur(6px)}
 .toast.ok{border-color:var(--ok);color:#c9ffe7}
 .toast.danger{border-color:var(--danger);color:#ffd0dc}
 </style>
 </head>
 <body>
-
-<!-- ONBOARDING -->
-<div id="onboarding">
-  <div class="ob-card">
-    <svg class="logo" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round">
+<div class="app">
+  <header>
+    <svg class="logo" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3.4">
       <path d="M50 7C24 7 12 29 12 48c0 24 17 45 38 45s38-21 38-45C88 29 76 7 50 7Z"/>
       <ellipse cx="33" cy="47" rx="11" ry="7.5" transform="rotate(-22 33 47)" fill="currentColor"/>
       <ellipse cx="67" cy="47" rx="11" ry="7.5" transform="rotate(22 67 47)" fill="currentColor"/>
     </svg>
     <h1>SENTINELA<span>-7</span></h1>
-    <p class="sub">CENTRAL DE MONITORAMENTO · v1.1</p>
-    <h2>◈ ANTES DE COMEÇAR</h2>
-    <p>Esta central gerencia <b>dispositivos que você possui ou é responsável legal</b>. Ela não captura câmera, microfone ou rastreia pessoas sem consentimento.</p>
-    <ul>
-      <li>Frotas: veículos da sua empresa, com contrato e aviso ao motorista</li>
-      <li>Família: aparelho de filho menor sob sua guarda legal</li>
-      <li>Comunicação com o condutor é bidirecional e visível pra ele</li>
-      <li>Nenhuma captura oculta de câmera, microfone ou tela</li>
-    </ul>
-    <label class="chk"><input type="checkbox" id="obChk1">
-      <span>Declaro que tenho autoridade legal sobre os dispositivos que vou monitorar, e que os usuários foram informados.</span></label>
-    <label class="chk"><input type="checkbox" id="obChk2">
-      <span>Li e aceito a Política de Privacidade e os Termos de Uso, conforme LGPD (Lei 13.709/2018).</span></label>
-    <button id="obBtn" disabled>◈ ACESSAR CENTRAL</button>
-  </div>
-</div>
-
-<!-- APP -->
-<div class="app" id="app" style="visibility:hidden">
-  <header>
-    <svg class="logo" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round">
-      <path d="M50 7C24 7 12 29 12 48c0 24 17 45 38 45s38-21 38-45C88 29 76 7 50 7Z"/>
-      <ellipse cx="33" cy="47" rx="11" ry="7.5" transform="rotate(-22 33 47)" fill="currentColor"/>
-      <ellipse cx="67" cy="47" rx="11" ry="7.5" transform="rotate(22 67 47)" fill="currentColor"/>
-    </svg>
-    <div class="brand"><h1>SENTINELA<span>-7</span></h1><p>CENTRAL DE MONITORAMENTO</p></div>
     <div class="spacer"></div>
-    <button class="hbtn primary" id="btnNewVehicle">＋ NOVA UNIDADE</button>
-    <button class="hbtn" id="btnCommand">◈ COMANDO</button>
-    <div class="status" id="sysStatus">OPERACIONAL</div>
+    <div class="code" id="panelCode">— — — — — —</div>
+    <button class="hbtn" id="btnShare">📤 COMPARTILHAR APP DO MOTORISTA</button>
   </header>
 
   <aside class="side">
     <div class="side-head">
-      <div class="row"><h2>◈ UNIDADES</h2><span class="count" id="vCount">0</span></div>
-      <input class="search" id="vSearch" placeholder="Buscar nome ou placa…">
-      <div class="filters">
-        <button data-filter="all" class="on">TODOS</button>
-        <button data-filter="moving">EM MOV.</button>
-        <button data-filter="stopped">PARADO</button>
-        <button data-filter="offline">OFF</button>
-      </div>
+      <h2>◈ MOTORISTAS <span class="count" id="driverCount">0</span></h2>
     </div>
-    <div class="vehicle-list" id="vList"></div>
+    <div class="driver-list" id="driverList"></div>
   </aside>
 
   <main class="map-wrap">
     <div id="map"></div>
-    <div class="tint"></div><div class="scanline"></div>
-    <div class="map-overlay-top">
-      <div class="chip">◈ RASTREIO ATIVO · <b id="chipOnline">0</b> UNIDADES</div>
-      <div class="chip" id="chipTime">◈ --:--:--</div>
-      <div class="chip">◈ FONTE: <b id="chipSource">SIMULADO</b></div>
-    </div>
+    <div class="scanline"></div>
   </main>
 
   <aside class="alerts">
-    <div class="alerts-head"><h2>◈ ALERTAS</h2><span class="badge ok" id="alertBadge">0</span></div>
+    <div class="alerts-head">
+      <h2>◈ ALERTAS</h2>
+      <span class="badge" id="alertBadge">0</span>
+    </div>
     <div class="alert-list" id="alertList"></div>
   </aside>
 
   <footer>
-    <div class="stat">UNIDADES <b id="fTotal">0</b></div>
-    <div class="stat">ONLINE <b id="fOnline">0</b></div>
-    <div class="stat">MOVENDO <b id="fMoving">0</b></div>
-    <div class="stat">ALERTAS <b id="fAlerts">0</b></div>
+    <div>ONLINE <b id="fOnline">0</b></div>
+    <div>MOVENDO <b id="fMoving">0</b></div>
     <div class="spacer"></div>
-    <div class="legal">LGPD COMPLIANT · DADOS CRIPTOGRAFADOS · © SENTINELA-7</div>
+    <div class="legal">LGPD · CONSENTIMENTO REGISTRADO · © SENTINELA-7</div>
   </footer>
 </div>
 
-<!-- MODAL: NOVA UNIDADE -->
-<div class="modal" id="mNew">
-  <div class="modal-card">
+<div class="modal" id="detailModal">
+  <div class="mcard">
     <div class="hdr">
-      <div><h2>◈ CADASTRAR UNIDADE</h2><div class="sub">VEÍCULO OU PESSOA AUTORIZADA</div></div>
-      <button class="close" data-close="mNew">✕</button>
-    </div>
-    <div class="form-row two">
-      <div>
-        <label>TIPO</label>
-        <select id="nvType">
-          <option value="veiculo">🚚 VEÍCULO (frota)</option>
-          <option value="pessoa">👤 PESSOA (familiar/equipe)</option>
-        </select>
-      </div>
-      <div>
-        <label>PLACA / IDENTIF.</label>
-        <input id="nvPlate" placeholder="ABC-1A23 (opcional)">
-      </div>
-    </div>
-    <div class="form-row">
-      <label>NOME DA UNIDADE</label>
-      <input id="nvName" placeholder="Ex: Caminhão 01, Filho João" maxlength="32">
-    </div>
-    <div class="form-row two">
-      <div>
-        <label>RESPONSÁVEL</label>
-        <input id="nvOwner" placeholder="Nome do gestor">
-      </div>
-      <div>
-        <label>TELEFONE DO CONDUTOR</label>
-        <input id="nvPhone" type="tel" placeholder="+55 11 9…" maxlength="24">
-      </div>
-    </div>
-    <div class="form-row">
-      <label>OBSERVAÇÕES / BASE LEGAL</label>
-      <textarea id="nvNotes" placeholder="Ex: Termo de consentimento assinado em 12/03, aviso entregue ao motorista." maxlength="280"></textarea>
-    </div>
-    <button class="btn-submit" id="nvSubmit">◈ GERAR CÓDIGO DE PAREAMENTO</button>
-    <div id="nvResult" style="display:none;margin-top:14px">
-      <div class="pair-hint">Instale o app Sentinela-7 no aparelho da unidade e digite este código:</div>
-      <div class="pair-code" id="nvCode">— — — — — —</div>
-      <div class="pair-hint">O app mostrará aviso permanente de que está sendo monitorado.<br>Pode ser encerrado pelo próprio usuário a qualquer momento.</div>
-      <div class="actions" style="margin-top:10px">
-        <button class="primary" id="nvCopy">📋 COPIAR CÓDIGO</button>
-        <button class="gold" id="nvShare">💬 ENVIAR POR WHATSAPP</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: COMANDO (mensagens/alerta) -->
-<div class="modal" id="mCmd">
-  <div class="modal-card gold">
-    <div class="hdr">
-      <div><h2>◈ CENTRAL DE COMANDO</h2><div class="sub">ENVIAR MENSAGEM, ALERTA OU COMUNICADO</div></div>
-      <button class="close" data-close="mCmd">✕</button>
-    </div>
-    <div class="form-row">
-      <label>DESTINATÁRIO</label>
-      <div class="target-row">
-        <select id="cmdTarget"><option value="all">📢 TODAS AS UNIDADES</option></select>
-      </div>
-    </div>
-    <div class="form-row">
-      <label>TIPO</label>
-      <select id="cmdType">
-        <option value="msg">💬 MENSAGEM (aparece no app do condutor)</option>
-        <option value="alert">🚨 ALERTA CRÍTICO (som + vibração + tela cheia)</option>
-        <option value="announce">📢 COMUNICADO (aviso geral)</option>
-      </select>
-    </div>
-    <div class="form-row">
-      <label>MENSAGENS PRONTAS</label>
-      <div class="canned-grid" id="cannedGrid"></div>
-    </div>
-    <div class="form-row">
-      <label>MENSAGEM PERSONALIZADA</label>
-      <textarea id="cmdMsg" placeholder="Escreva ou toque em uma mensagem pronta acima…" maxlength="280"></textarea>
-    </div>
-    <button class="btn-submit" id="cmdSend">◈ ENVIAR</button>
-  </div>
-</div>
-
-<!-- MODAL: DETALHE DA UNIDADE -->
-<div class="modal" id="detail">
-  <div class="modal-card">
-    <div class="hdr">
-      <div><h2 id="dName">—</h2><div class="sub" id="dPlate">—</div></div>
-      <button class="close" data-close="detail">✕</button>
+      <div><h2 id="dName">—</h2><div class="sub" id="dCode">—</div></div>
+      <button class="close" id="dClose">✕</button>
     </div>
     <div class="kv">
       <div class="box"><div class="l">STATUS</div><div class="v ok" id="dStatus">—</div></div>
       <div class="box"><div class="l">VELOCIDADE</div><div class="v" id="dSpeed">—</div></div>
-      <div class="box"><div class="l">ÚLTIMA POSIÇÃO</div><div class="v gold" id="dPos">—</div></div>
-      <div class="box"><div class="l">ÚLTIMA ATUALIZAÇÃO</div><div class="v" id="dLast">—</div></div>
-      <div class="box"><div class="l">IGNIÇÃO</div><div class="v" id="dIgn">—</div></div>
-      <div class="box"><div class="l">BATERIA / SINAL</div><div class="v" id="dBat">—</div></div>
+      <div class="box"><div class="l">POSIÇÃO</div><div class="v gold" id="dPos">—</div></div>
+      <div class="box"><div class="l">ATUALIZADO</div><div class="v" id="dLast">—</div></div>
     </div>
-    <div class="actions" style="margin-bottom:4px">
-      <button class="primary" id="dCenter">🎯 CENTRALIZAR NO MAPA</button>
-      <button id="dHist">📈 HISTÓRICO</button>
-      <button id="dGeof">◈ GEOFENCE</button>
+    <div class="actions">
+      <button class="ok" id="dCenter">🎯 CENTRALIZAR</button>
     </div>
-
-    <div class="channels">
-      <h3>◈ CANAL COM O CONDUTOR</h3>
-      <div class="chan-row">
-        <button class="ptt" id="dPTT">🎙 PUSH-TO-TALK (aperte pra falar)</button>
-        <button class="sos" id="dSOSTest">🚨 TESTAR ALERTA SOS</button>
-      </div>
-      <div class="chat" id="dChat"></div>
-      <div class="chat-input">
-        <input id="dChatInput" placeholder="Escreva para o condutor…" maxlength="180">
-        <button id="dChatSend">ENVIAR</button>
-      </div>
-      <div style="font-size:8.5px;color:var(--muted);margin-top:8px;line-height:1.6">
-        ⓘ O condutor vê o canal aberto no app dele. Ele pode responder e iniciar chamadas por vontade própria. Nenhuma captura silenciosa.
-      </div>
+    <div style="font-size:10px;color:var(--gold);letter-spacing:.16em;margin-bottom:8px">◈ CANAL COM O MOTORISTA</div>
+    <div class="chat" id="dChat"></div>
+    <div class="chat-input">
+      <input id="dChatInput" placeholder="Escreva para o motorista…" maxlength="180">
+      <button id="dChatSend">ENVIAR</button>
     </div>
   </div>
 </div>
@@ -490,401 +240,213 @@ footer .legal{color:rgba(0,240,255,.4);font-size:8px}
 <div id="toastWrap"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-/* =================================================================
-   SENTINELA-7 · CENTRAL DE MONITORAMENTO v1.1
-   Frotas & Família · LGPD compliant
-   ================================================================= */
-
-const CONFIG = {
-  apiBase: null, apiToken: null, demo: true,
-  center: [-23.5613, -24.6565], // ajustado pra demo em SP
-  zoom: 14, tickMs: 2000
-};
-CONFIG.center = [-23.5613, -46.6565];
-
-const state = {
-  vehicles: [], alerts: [], chats: {}, // chats por vehicleId
-  selectedId: null, filter: 'all', search: '',
-  geofences: []
-};
-
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmtTime = d => new Date(d).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+const fmtTime = d => new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 const since = ts => { const s=Math.round((Date.now()-ts)/1000); return s<60?s+'s':s<3600?Math.round(s/60)+'min':Math.round(s/3600)+'h'; };
 
 function toast(msg, type=''){
-  const t = document.createElement('div'); t.className='toast '+type; t.textContent=msg;
+  const t = document.createElement('div'); t.className = 'toast '+type; t.textContent = msg;
   $('toastWrap').appendChild(t);
-  setTimeout(()=>{t.style.transition='opacity .3s,transform .3s';t.style.opacity=0;t.style.transform='translateY(16px)';setTimeout(()=>t.remove(),320);},3600);
+  setTimeout(()=>{ t.style.transition='opacity .3s,transform .3s'; t.style.opacity=0;
+    t.style.transform='translateY(14px)'; setTimeout(()=>t.remove(),300); }, 3400);
 }
 
-/* ONBOARDING */
-(function(){
-  const c1=$('obChk1'),c2=$('obChk2'),b=$('obBtn');
-  const check=()=>b.disabled=!(c1.checked&&c2.checked);
-  c1.onchange=check; c2.onchange=check;
-  const enter=()=>{ $('onboarding').classList.add('hide'); $('app').style.visibility='visible'; setTimeout(()=>map&&map.invalidateSize(),120); };
-  b.onclick=()=>{ try{localStorage.setItem('sentinela7.consent',JSON.stringify({ts:Date.now(),v:'1.1'}));}catch(e){} enter(); };
-  try{ if(localStorage.getItem('sentinela7.consent')) enter(); }catch(e){}
-})();
+const PEER_PREFIX = 'sentinela7-v2-';
+let sessionCode = localStorage.getItem('sentinela7.sessionCode');
+if (!sessionCode){
+  const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  sessionCode = '';
+  for (let i=0;i<6;i++) sessionCode += L[Math.floor(Math.random()*L.length)];
+  localStorage.setItem('sentinela7.sessionCode', sessionCode);
+}
+$('panelCode').textContent = sessionCode.split('').join(' ');
 
-/* MAPA */
-let map;
+const drivers = {};
+let map, hostPeer = null, selectedId = null;
+
 function initMap(){
-  map = L.map('map',{zoomControl:true,preferCanvas:true,worldCopyJump:true}).setView(CONFIG.center,CONFIG.zoom);
+  map = L.map('map',{zoomControl:true,preferCanvas:true,worldCopyJump:true})
+    .setView([-23.5613,-46.6565], 14);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    {maxZoom:20,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
+    {maxZoom:20,subdomains:'abcd',attribution:'&copy; OSM &copy; CARTO'}).addTo(map);
 }
 
-function vehicleIcon(v){
-  const cls = v.alert ? 'alert' : (v.ignition ? '' : (v.online ? 'stopped' : 'offline'));
+function pushAlert(level, title, body){
+  const list = $('alertList');
+  const item = document.createElement('div');
+  item.className = 'a-item ' + (level || '');
+  item.innerHTML = `<div class="t">${level==='danger'?'🚨':level==='warn'?'⚠':'ℹ'} ${esc(title)}</div>
+    <div class="d">${esc(body)}</div><div class="time">${fmtTime(Date.now())}</div>`;
+  list.insertBefore(item, list.firstChild);
+  $('alertBadge').textContent = list.children.length;
+}
+
+function driverIcon(d){
   return L.divIcon({className:'',
-    html:`<div class="mk-v ${cls}">
-      <div class="arrow" style="transform:translate(-50%,-110%) rotate(${v.heading||0}deg)"></div>
-      <span>${esc(v.name)} · ${Math.round(v.speed)} km/h</span>
+    html:`<div class="mk-v ${d.online?'':'offline'}">
+      <div class="arrow" style="transform:translate(-50%,-110%) rotate(${d.heading||0}deg)"></div>
+      <span>${esc(d.name)} · ${Math.round(d.speed||0)} km/h</span>
     </div>`, iconSize:[20,20],iconAnchor:[10,10]});
 }
-function renderMarkers(){
-  state.vehicles.forEach(v=>{
-    const ll=[v.lat,v.lng];
-    if(!v._marker){ v._marker=L.marker(ll,{icon:vehicleIcon(v),zIndexOffset:500}).addTo(map); v._marker.on('click',()=>openDetail(v.id)); }
-    else { v._marker.setLatLng(ll); v._marker.setIcon(vehicleIcon(v)); }
-  });
-}
 
-/* LISTA */
 function renderList(){
-  const list=$('vList'); let arr=state.vehicles.slice();
-  if(state.filter==='moving') arr=arr.filter(v=>v.online&&v.ignition&&v.speed>3);
-  if(state.filter==='stopped') arr=arr.filter(v=>v.online&&(!v.ignition||v.speed<=3));
-  if(state.filter==='offline') arr=arr.filter(v=>!v.online);
-  if(state.search){ const q=state.search.toLowerCase(); arr=arr.filter(v=>v.name.toLowerCase().includes(q)||(v.plate||'').toLowerCase().includes(q)); }
-  arr.sort((a,b)=>{ if(!!a.alert!==!!b.alert) return a.alert?-1:1; if(a.online!==b.online) return a.online?-1:1; return (b.lastTs||0)-(a.lastTs||0); });
-  if(!arr.length){ list.innerHTML='<div class="empty-alerts">NENHUMA UNIDADE<br><br>Clique em "＋ NOVA UNIDADE" pra cadastrar.</div>'; $('vCount').textContent='0'; return; }
-  $('vCount').textContent=arr.length+'/'+state.vehicles.length;
-  list.innerHTML = arr.map(v=>{
-    const cls=!v.online?'offline':v.alert?'alert':(v.ignition&&v.speed>3?'':'stopped');
-    const sel=v.id===state.selectedId?'selected':'';
-    const st=v.online?(v.ignition?Math.round(v.speed)+' km/h':'parado'):'offline';
-    const fuelPct=v.fuel!=null?Math.round(v.fuel*100):null;
-    const fuelBar=fuelPct!=null?`<div class="bar"><i style="width:${fuelPct}%"></i></div>`:'';
-    return `<div class="v-item ${cls} ${sel}" data-id="${v.id}">
-      <div class="row1"><div class="name"><span class="dot"></span>${esc(v.name)}</div>
-      <div class="plate">${esc(v.plate||'—')}</div></div>
-      <div class="row2"><span>◈ <b>${esc(st)}</b></span>
-      <span>◈ ${v.online?'há '+since(v.lastTs):'sem sinal'}</span>
-      ${fuelPct!=null?`<span>◈ comb. <b>${fuelPct}%</b></span>`:''}</div>${fuelBar}</div>`;
+  const list = $('driverList');
+  const keys = Object.keys(drivers);
+  $('driverCount').textContent = keys.length;
+  if (!keys.length){
+    list.innerHTML = '<div class="empty">NENHUM MOTORISTA<br><br>Toque em<br><b>COMPARTILHAR APP</b><br>e envie o link.</div>';
+    return;
+  }
+  list.innerHTML = keys.sort((a,b) => (drivers[b].online?1:0)-(drivers[a].online?1:0)).map(k => {
+    const d = drivers[k];
+    const st = d.online ? (d.speed > 3 ? Math.round(d.speed)+' km/h' : 'parado') : 'offline';
+    return `<div class="d-item ${d.online?'':'offline'}" data-id="${k}">
+      <div class="r1"><div class="name"><span class="dot"></span>${esc(d.name)}</div></div>
+      <div class="r2"><span>◈ <b>${st}</b></span>
+      <span>◈ ${d.online?'há '+since(d.ts):'sem sinal'}</span></div></div>`;
   }).join('');
-  list.querySelectorAll('.v-item').forEach(el=>{
-    el.onclick=()=>{state.selectedId=el.dataset.id;renderList();};
-    el.ondblclick=()=>openDetail(el.dataset.id);
+  list.querySelectorAll('.d-item').forEach(el => {
+    el.onclick = () => openDetail(el.dataset.id);
   });
 }
 
-/* ALERTAS */
-function renderAlerts(){
-  const list=$('alertList'),badge=$('alertBadge');
-  const recent=state.alerts.slice(0,60);
-  if(!recent.length){ list.innerHTML='<div class="empty-alerts">SEM ALERTAS<br><br>◈ Sistema operando normalmente</div>'; badge.textContent='0'; badge.className='badge ok'; return; }
-  const crit=state.alerts.filter(a=>a.level==='danger'&&Date.now()-a.ts<60000).length;
-  badge.textContent=crit||recent.length; badge.className='badge'+(crit?'':' ok');
-  list.innerHTML=recent.map(a=>`<div class="a-item ${a.level==='danger'?'':a.level}">
-    <div class="t">${a.level==='danger'?'🚨':a.level==='warn'?'⚠':a.level==='sent'?'📤':'ℹ'} ${esc(a.title)}</div>
-    <div class="d">${esc(a.body)}</div>
-    <div class="time"><span>${fmtTime(a.ts)}</span>
-    ${a.vehicleId?`<button data-act="focus" data-vid="${a.vehicleId}">VER NO MAPA</button>`:''}</div></div>`).join('');
-  list.querySelectorAll('button[data-act="focus"]').forEach(b=>{
-    b.onclick=()=>{ const v=state.vehicles.find(x=>x.id===b.dataset.vid); if(v){ state.selectedId=v.id; renderList(); map.setView([v.lat,v.lng],Math.max(map.getZoom(),16),{animate:true}); } };
-  });
-}
-
-function pushAlert(level,title,body,vehicleId){
-  state.alerts.unshift({id:'a'+Date.now()+Math.random(),ts:Date.now(),level,title,body,vehicleId});
-  if(state.alerts.length>200) state.alerts.length=200;
-  renderAlerts(); updateStats();
-}
-
-/* DETALHE */
-let detailId=null;
-function openDetail(id){
-  const v=state.vehicles.find(x=>x.id===id); if(!v) return;
-  detailId=id;
-  $('dName').textContent=v.name;
-  $('dPlate').textContent=(v.plate||'—')+' · '+(v.type==='pessoa'?'PESSOA':'VEÍCULO');
-  const st=!v.online?'OFFLINE':v.alert?'ALERTA':(v.ignition&&v.speed>3?'EM MOVIMENTO':'PARADO');
-  const stEl=$('dStatus'); stEl.textContent=st;
-  stEl.className='v '+(v.alert?'danger':v.online?(v.ignition&&v.speed>3?'ok':'gold'):'');
-  $('dSpeed').textContent=v.online?Math.round(v.speed)+' km/h':'—';
-  $('dPos').textContent=v.lat.toFixed(5)+', '+v.lng.toFixed(5);
-  $('dLast').textContent=v.online?'há '+since(v.lastTs):'sem sinal';
-  $('dIgn').textContent=v.online?(v.ignition?'LIGADA':'DESLIGADA'):'—';
-  $('dBat').textContent=v.online?`${Math.round((v.battery||0)*100)}% · ${v.signal||'—'}`:'—';
-  renderChat(id);
-  $('detail').classList.add('show');
-}
-function renderChat(vid){
-  const msgs=state.chats[vid]||[];
-  const box=$('dChat');
-  if(!msgs.length){ box.innerHTML='<div style="text-align:center;color:var(--muted);font-size:9px;padding:14px 0">◈ Nenhuma mensagem ainda · inicie a conversa abaixo</div>'; return; }
-  box.innerHTML=msgs.slice(-50).map(m=>`<div class="msg ${m.from==='me'?'me':'them'}">
-    ${esc(m.text)}<div class="meta">${m.from==='me'?'CENTRAL':'CONDUTOR'} · ${fmtTime(m.ts)}</div></div>`).join('');
-  box.scrollTop=box.scrollHeight;
-}
-
-/* FILTROS */
-document.querySelectorAll('.filters button').forEach(b=>{
-  b.onclick=()=>{ document.querySelectorAll('.filters button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); state.filter=b.dataset.filter; renderList(); };
-});
-$('vSearch').oninput=e=>{ state.search=e.target.value.trim(); renderList(); };
-
-/* STATS */
-function updateStats(){
-  const total=state.vehicles.length;
-  const online=state.vehicles.filter(v=>v.online).length;
-  const moving=state.vehicles.filter(v=>v.online&&v.ignition&&v.speed>3).length;
-  const alerts=state.alerts.filter(a=>Date.now()-a.ts<300000).length;
-  $('fTotal').textContent=total; $('fOnline').textContent=online;
-  $('fMoving').textContent=moving; $('fAlerts').textContent=alerts;
-  $('chipOnline').textContent=online;
-  const el=$('sysStatus'); const crit=state.vehicles.some(v=>v.alert);
-  el.textContent=crit?'ALERTA ATIVO':'OPERACIONAL';
-  el.className='status'+(crit?' warn':'');
-}
-setInterval(()=>{$('chipTime').textContent='◈ '+new Date().toLocaleTimeString('pt-BR');},1000);
-
-/* =================================================================
-   MODAL: NOVA UNIDADE
-   ================================================================= */
-function genCode(){
-  const L='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c='';
-  for(let i=0;i<6;i++) c+=L[Math.floor(Math.random()*L.length)];
-  return c;
-}
-
-$('btnNewVehicle').onclick=()=>{
-  ['nvName','nvPlate','nvOwner','nvPhone','nvNotes'].forEach(id=>$(id).value='');
-  $('nvResult').style.display='none';
-  $('mNew').classList.add('show');
-  setTimeout(()=>$('nvName').focus(),100);
-};
-
-$('nvSubmit').onclick=()=>{
-  const name=$('nvName').value.trim();
-  if(!name){ toast('Digite um nome pra unidade.','danger'); return; }
-  const type=$('nvType').value;
-  const plate=$('nvPlate').value.trim().toUpperCase();
-  const owner=$('nvOwner').value.trim();
-  const phone=$('nvPhone').value.trim();
-  const notes=$('nvNotes').value.trim();
-
-  const code=genCode();
-  const v={
-    id:'v'+Date.now(),
-    name, plate, type, owner, phone, notes,
-    pairingCode:code,
-    lat:CONFIG.center[0]+(Math.random()-.5)*.02,
-    lng:CONFIG.center[1]+(Math.random()-.5)*.02,
-    heading:0, speed:0, ignition:false, online:false,
-    battery:1, signal:'—', fuel:type==='veiculo'?1:null,
-    lastTs:Date.now(), alert:false
-  };
-  state.vehicles.push(v);
-  renderList(); renderMarkers(); updateStats();
-  updateCmdTargets();
-  refreshCannedGrid();
-
-  $('nvCode').textContent=code.split('').join(' ');
-  $('nvResult').style.display='block';
-  pushAlert('info','Unidade cadastrada',`${name} aguardando pareamento (${code}).`,v.id);
-  toast(`Unidade "${name}" criada · código ${code}`,'ok');
-};
-
-$('nvCopy').onclick=()=>{
-  const code=$('nvCode').textContent.replace(/\s/g,'');
-  navigator.clipboard.writeText(code).then(()=>toast('Código copiado','ok'));
-};
-$('nvShare').onclick=()=>{
-  const code=$('nvCode').textContent.replace(/\s/g,'');
-  const name=$('nvName').value.trim()||'unidade';
-  const msg=`Olá! Para ativar o rastreamento de "${name}" no Sentinela-7, instale o app e digite o código: ${code}`;
-  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-};
-
-/* =================================================================
-   MODAL: COMANDO (mensagens prontas)
-   ================================================================= */
-const CANNED=[
-  {t:'Onde você está?',cls:'',type:'msg'},
-  {t:'Está tudo bem?',cls:'',type:'msg'},
-  {t:'Faça uma pausa de 15 min.',cls:'',type:'msg'},
-  {t:'Retorne à base.',cls:'gold',type:'msg'},
-  {t:'Cliente aguardando. Priorize a entrega.',cls:'gold',type:'msg'},
-  {t:'Confirme recebimento.',cls:'',type:'msg'},
-  {t:'⚠ Reduza a velocidade.',cls:'gold',type:'alert'},
-  {t:'⚠ Rota desviada. Verifique.',cls:'gold',type:'alert'},
-  {t:'🚨 Pare o veículo em local seguro.',cls:'red',type:'alert'},
-  {t:'🚨 Situação de risco. Acione o SOS.',cls:'red',type:'alert'},
-  {t:'📢 Reunião de equipe às 18h na base.',cls:'',type:'announce'},
-  {t:'📢 Novo procedimento disponível no app.',cls:'',type:'announce'}
-];
-
-function refreshCannedGrid(){
-  $('cannedGrid').innerHTML=CANNED.map((c,i)=>
-    `<button class="canned-btn ${c.cls}" data-i="${i}">${esc(c.t)}</button>`).join('');
-  $('cannedGrid').querySelectorAll('.canned-btn').forEach(b=>{
-    b.onclick=()=>{
-      const c=CANNED[+b.dataset.i];
-      $('cmdMsg').value=c.t;
-      $('cmdType').value=c.type;
-    };
-  });
-}
-
-function updateCmdTargets(){
-  const sel=$('cmdTarget');
-  const cur=sel.value;
-  sel.innerHTML='<option value="all">📢 TODAS AS UNIDADES</option>'+
-    state.vehicles.map(v=>`<option value="${v.id}">${esc(v.name)}${v.online?' 🟢':' ⚪'}</option>`).join('');
-  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
-}
-
-$('btnCommand').onclick=()=>{
-  updateCmdTargets(); refreshCannedGrid();
-  $('cmdMsg').value=''; $('cmdType').value='msg';
-  $('mCmd').classList.add('show');
-};
-
-$('cmdSend').onclick=()=>{
-  const target=$('cmdTarget').value;
-  const type=$('cmdType').value;
-  const text=$('cmdMsg').value.trim();
-  if(!text){ toast('Escreva ou escolha uma mensagem.','danger'); return; }
-
-  const targets = target==='all' ? state.vehicles : state.vehicles.filter(v=>v.id===target);
-  if(!targets.length){ toast('Nenhuma unidade encontrada.','danger'); return; }
-
-  const label = target==='all' ? 'TODAS AS UNIDADES' : targets[0].name;
-  const typeLabel = type==='alert'?'ALERTA':type==='announce'?'COMUNICADO':'MENSAGEM';
-
-  targets.forEach(v=>{
-    if(!state.chats[v.id]) state.chats[v.id]=[];
-    state.chats[v.id].push({from:'me',text:`[${typeLabel}] ${text}`,ts:Date.now()});
-    // simula resposta do condutor em alguns casos
-    if(Math.random()<0.4 && type==='msg'){
-      setTimeout(()=>{
-        state.chats[v.id].push({from:'them',text:'Recebido, ciência.',ts:Date.now()});
-        if(detailId===v.id) renderChat(v.id);
-      },2000+Math.random()*3000);
+function renderMarkers(){
+  Object.keys(drivers).forEach(k => {
+    const d = drivers[k];
+    if (d.lat == null) return;
+    const ll = [d.lat, d.lng];
+    if (!d.marker){
+      d.marker = L.marker(ll,{icon:driverIcon(d),zIndexOffset:500}).addTo(map);
+      d.marker.on('click', () => openDetail(k));
+    } else {
+      d.marker.setLatLng(ll);
+      d.marker.setIcon(driverIcon(d));
     }
   });
-
-  pushAlert('sent',`${typeLabel} enviado`, `Para ${label}: "${text.slice(0,80)}${text.length>80?'…':''}"`, target==='all'?null:target);
-  toast(`${typeLabel} enviado para ${targets.length} unidade(s)`,'ok');
-  $('mCmd').classList.remove('show');
-  if(detailId) renderChat(detailId);
-};
-
-/* =================================================================
-   MODAL: DETALHE — ações
-   ================================================================= */
-document.querySelectorAll('[data-close]').forEach(b=>{
-  b.onclick=()=>$(b.dataset.close).classList.remove('show');
-});
-document.querySelectorAll('.modal').forEach(m=>{
-  m.onclick=e=>{ if(e.target===m) m.classList.remove('show'); };
-});
-
-$('dCenter').onclick=()=>{
-  if(!detailId) return;
-  const v=state.vehicles.find(x=>x.id===detailId);
-  if(v) map.setView([v.lat,v.lng],Math.max(map.getZoom(),16),{animate:true});
-  $('detail').classList.remove('show');
-};
-$('dHist').onclick=()=>toast('Histórico: plugue Traccar pra trajeto completo.','ok');
-$('dGeof').onclick=()=>toast('Geofence: em breve com Traccar.','ok');
-
-$('dChatSend').onclick=()=>{
-  if(!detailId) return;
-  const inp=$('dChatInput'); const text=inp.value.trim();
-  if(!text) return;
-  const v=state.vehicles.find(x=>x.id===detailId);
-  if(!v) return;
-  if(!state.chats[v.id]) state.chats[v.id]=[];
-  state.chats[v.id].push({from:'me',text,ts:Date.now()});
-  inp.value=''; renderChat(v.id);
-  // simula resposta
-  setTimeout(()=>{
-    state.chats[v.id].push({from:'them',text:'Ok, recebido.',ts:Date.now()});
-    if(detailId===v.id) renderChat(v.id);
-  },1500+Math.random()*2500);
-};
-$('dChatInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('dChatSend').click(); });
-
-$('dPTT').onclick=()=>{
-  toast('Push-to-talk: requer app nativo no aparelho. Em breve.','ok');
-  pushAlert('info','PTT solicitado','Canal aberto com o condutor (aguardando aceite).',detailId);
-};
-$('dSOSTest').onclick=()=>{
-  if(!detailId) return;
-  const v=state.vehicles.find(x=>x.id===detailId); if(!v) return;
-  v.alert=true;
-  pushAlert('danger','🚨 SOS RECEBIDO',`${v.name} acionou o botão de emergência.`,v.id);
-  toast('Alerta SOS simulado','danger');
-  setTimeout(()=>{ v.alert=false; renderList(); renderMarkers(); },8000);
-};
-
-/* =================================================================
-   DEMO
-   ================================================================= */
-function makeDemo(id,name,plate,lat,lng,opts={}){
-  return {id,name,plate,type:opts.type||'veiculo',lat,lng,
-    heading:Math.random()*360,speed:opts.speed??0,ignition:opts.ignition??false,
-    online:true,battery:opts.battery??0.7+Math.random()*0.3,signal:opts.signal||'4G',
-    fuel:opts.fuel??(0.3+Math.random()*0.7),lastTs:Date.now(),alert:false};
 }
-function seedDemo(){
-  const c=CONFIG.center;
-  state.vehicles=[
-    makeDemo('v1','Caminhão 01','ABC-1A23',c[0]+0.004,c[1]-0.003,{speed:42,ignition:true,fuel:0.72}),
-    makeDemo('v2','Van Entrega 03','XYZ-7B45',c[0]-0.003,c[1]+0.005,{speed:18,ignition:true,fuel:0.55}),
-    makeDemo('v3','Sedan Diretoria','DEF-2C67',c[0]+0.001,c[1]+0.001,{speed:0,ignition:false,fuel:0.88}),
-    makeDemo('v4','Moto 02','GHI-9D89',c[0]-0.005,c[1]-0.006,{speed:55,ignition:true,fuel:0.41}),
-    makeDemo('v5','Filho · João',null,c[0]+0.006,c[1]+0.004,{type:'pessoa',speed:4,ignition:true,battery:0.62,fuel:null})
-  ];
-  state.vehicles.forEach(v=>state.chats[v.id]=[]);
-  state.alerts=[{id:'a1',ts:Date.now()-120000,level:'info',title:'Sistema iniciado',body:'Central operacional · modo demonstração.'}];
+
+function updateStats(){
+  const arr = Object.values(drivers);
+  $('fOnline').textContent = arr.filter(d => d.online).length;
+  $('fMoving').textContent = arr.filter(d => d.online && d.speed > 3).length;
 }
-function tickDemo(){
-  if(!CONFIG.demo) return;
-  state.vehicles.forEach(v=>{
-    if(!v.online||!v.ignition) return;
-    v.lat+=(Math.random()-.5)*.0008; v.lng+=(Math.random()-.5)*.0008;
-    v.heading=(v.heading+(Math.random()-.5)*12+360)%360;
-    v.speed=Math.max(0,Math.min(90,v.speed+(Math.random()-.5)*8));
-    v.lastTs=Date.now();
-    if(v.fuel!=null&&Math.random()<0.03) v.fuel=Math.max(0,v.fuel-0.001);
-    if(v.speed>80&&!v._sa){ v._sa=true; v.alert=true;
-      pushAlert('danger','Excesso de velocidade',`${v.name} a ${Math.round(v.speed)} km/h`,v.id);
-      setTimeout(()=>{v.alert=false;v._sa=false;},12000); }
-    if(v.battery!=null&&v.battery<0.2&&!v._ba){ v._ba=true;
-      pushAlert('warn','Bateria baixa',`${v.name} com ${Math.round(v.battery*100)}%`,v.id); }
+
+function openDetail(id){
+  selectedId = id;
+  const d = drivers[id];
+  if (!d) return;
+  $('dName').textContent = d.name;
+  $('dCode').textContent = 'PEER · ' + id.slice(-8).toUpperCase();
+  $('dStatus').textContent = d.online ? 'ONLINE' : 'OFFLINE';
+  $('dStatus').className = 'v ' + (d.online ? 'ok' : '');
+  $('dSpeed').textContent = d.speed != null ? Math.round(d.speed)+' km/h' : '—';
+  $('dPos').textContent = d.lat != null ? d.lat.toFixed(5)+', '+d.lng.toFixed(5) : '—';
+  $('dLast').textContent = d.ts ? 'há '+since(d.ts) : '—';
+  renderChat(id);
+  $('detailModal').classList.add('show');
+}
+
+function renderChat(id){
+  const d = drivers[id]; if (!d) return;
+  const box = $('dChat');
+  if (!d.chat.length){
+    box.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:9px;padding:12px 0">◈ Sem mensagens ainda</div>';
+    return;
+  }
+  box.innerHTML = d.chat.slice(-40).map(m =>
+    `<div class="msg ${m.from==='me'?'me':'them'}">${esc(m.text)}
+    <div class="meta">${m.from==='me'?'CENTRAL':'MOTORISTA'} · ${fmtTime(m.ts)}</div></div>`).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+$('dClose').onclick = () => { $('detailModal').classList.remove('show'); selectedId = null; };
+$('dCenter').onclick = () => {
+  const d = drivers[selectedId]; if (!d || d.lat == null) return;
+  map.setView([d.lat, d.lng], Math.max(map.getZoom(), 16), {animate:true});
+  $('detailModal').classList.remove('show');
+};
+$('dChatSend').onclick = () => {
+  const inp = $('dChatInput'); const text = inp.value.trim();
+  if (!text || !selectedId) return;
+  const d = drivers[selectedId];
+  d.chat.push({from:'me', text, ts:Date.now()});
+  try{ if (d.conn && d.conn.open) d.conn.send({type:'msg', text}); }catch(e){}
+  inp.value = ''; renderChat(selectedId);
+  toast('Mensagem enviada', 'ok');
+};
+$('dChatInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('dChatSend').click(); });
+
+$('btnShare').onclick = async () => {
+  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  const url = base + 'driver.html#' + sessionCode;
+  const msg = `Sentinela-7 — App do Motorista\n\n1) Abra este link no celular\n2) Autorize o compartilhamento de localização\n3) Mantenha o app aberto durante o serviço\n\n${url}`;
+  if (navigator.share){
+    try{ await navigator.share({title:'Sentinela-7 Motorista', text:msg, url}); return; }catch(e){}
+  }
+  try{ await navigator.clipboard.writeText(url); toast('Link copiado!','ok'); }
+  catch(e){ prompt('Copie o link:', url); }
+};
+
+function startHost(){
+  hostPeer = new Peer(PEER_PREFIX + sessionCode, {debug:0});
+
+  hostPeer.on('open', () => {
+    toast('Central online · aguardando motoristas', 'ok');
+    pushAlert('info', 'Central iniciada', 'Código: ' + sessionCode);
   });
+
+  hostPeer.on('connection', conn => {
+    const d = {
+      name: 'Motorista', lat: null, lng: null, speed: 0, heading: 0,
+      ts: Date.now(), online: true, conn, chat: [], marker: null, _new: true
+    };
+    drivers[conn.peer] = d;
+
+    conn.on('data', data => {
+      if (!data) return;
+      if (data.type === 'hello'){
+        d.name = (data.name || 'Motorista').slice(0,24);
+        if (d._new){ pushAlert('info', 'Motorista conectado', d.name); d._new = false; }
+        renderList();
+      }
+      if (data.type === 'pos'){
+        d.lat = data.lat; d.lng = data.lng;
+        d.speed = data.speed || 0; d.heading = data.heading || 0;
+        d.ts = Date.now(); d.online = true;
+        renderList(); renderMarkers(); updateStats();
+        if (selectedId === conn.peer) openDetail(conn.peer);
+      }
+      if (data.type === 'msg'){
+        d.chat.push({from:'them', text:data.text, ts:Date.now()});
+        if (selectedId === conn.peer) renderChat(conn.peer);
+        pushAlert('warn', 'Mensagem de ' + d.name, data.text);
+      }
+    });
+
+    conn.on('close', () => {
+      d.online = false;
+      renderList(); renderMarkers(); updateStats();
+      pushAlert('warn', 'Motorista desconectou', d.name);
+    });
+    conn.on('error', () => { d.online = false; renderList(); });
+  });
+
+  hostPeer.on('error', err => {
+    console.warn('[peer]', err);
+    if (err.type === 'unavailable-id'){ toast('Código em uso, gerando novo…','danger');
+      localStorage.removeItem('sentinela7.sessionCode'); setTimeout(()=>location.reload(), 1500); }
+  });
+  hostPeer.on('disconnected', () => { try{ hostPeer.reconnect(); }catch(e){} });
 }
 
-function loop(){ tickDemo(); renderMarkers(); renderList(); renderAlerts(); updateStats(); }
-
-function boot(){
-  initMap(); seedDemo();
-  refreshCannedGrid(); updateCmdTargets();
-  loop(); setInterval(loop,CONFIG.tickMs);
-  try{ const gf=localStorage.getItem('sentinela7.geofences'); if(gf) state.geofences=JSON.parse(gf); }catch(e){}
-  toast('Modo DEMONSTRAÇÃO · dados simulados','ok');
-  setTimeout(()=>toast('Plugue a API Traccar para dados reais','ok'),3000);
-}
-boot();
+initMap();
+startHost();
+renderList();
+updateStats();
+setTimeout(() => map.invalidateSize(), 200);
 </script>
 </body>
 </html>
